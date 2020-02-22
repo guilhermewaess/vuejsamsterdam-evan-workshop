@@ -1,0 +1,51 @@
+<script>
+  let activeEffect
+  
+  class Ref {
+    constructor(value) {
+      this._value = value
+      this.subscribers = new Set()
+    }
+  
+    get value() {
+      this.depend()
+      return this._value
+    }
+  
+    set value(newValue) {
+      this._value = newValue
+      this.notify()
+    }
+  
+    depend() {
+      if (activeEffect) {
+        this.subscribers.add(activeEffect)
+      }
+    }
+  
+    notify() {
+      this.subscribers.forEach(sub => sub())
+    }
+  }
+  
+  function watchEffect(fn) {
+    const wrappedFn = () => {
+      activeEffect = wrappedFn
+      // clean up the deps
+      fn()
+      activeEffect = null
+    }
+  
+    wrappedFn()
+  }
+  
+  // -------------------------
+  
+  const count = new Ref(1)
+  
+  watchEffect(() => {
+    console.log(count.value)
+  })
+  
+  count.value = 2
+  </script>

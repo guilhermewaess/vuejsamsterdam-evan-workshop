@@ -1,6 +1,7 @@
 <div id="app"></div>
+
 <script>
-  function h(tag, props, children) {
+function h(tag, props, children) {
     return {
       tag,
       props,
@@ -91,9 +92,69 @@
     return h("div", { class: "app" }, [h("span", null, msg)]);
   }
 
-  const n1 = render("hello");
-  mount(n1, document.getElementById("app"));
+  let activeEffect
 
-  const n2 = render("bye");
-  patch(n1, n2);
+  class Dep {
+    subscribers = new Set()
+    depend() {
+      if (activeEffect) {
+        this.subscribers.add(activeEffect)
+      }
+    }
+    notify() {
+      this.subscribers.forEach(sub => sub())
+    }
+  }
+
+  function watchEffect(fn) {
+    const wrappedFn = () => {
+      activeEffect = wrappedFn
+      // clean up the deps
+      fn()
+      activeEffect = null
+    }
+
+    wrappedFn()
+  }
+
+  function reactive(obj) {
+    // iterate through the properties on obj
+    Object.keys(obj).forEach(key => {
+      const dep = new Dep()
+      let value = obj[key]
+      Object.defineProperty(obj, key, {
+        get() {
+          dep.depend()
+          return value
+        },
+        set(newValue) {
+          if (newValue !== value) {
+            value = newValue
+            dep.notify()
+          }
+        }
+      })
+    })
+
+    return obj
+    // for each property, rewrite it into getter & setter
+    // and create a dep instance
+    // call appropriate dep methods in the getter & setter
+  }
+
+  const state = reactive({
+    count: 0
+  })
+
+  let prevVnode
+  watchEffect(() => {
+    if (!prevVnode) {
+      prevVnode = render(String(state.count))
+      mount(prevVnode, document.getElementById('app'))
+    } else {
+      const newVnode = render(String(state.count))
+      patch(prevVnode, newVnode)
+      prevVnode = newVnode
+    }
+  })
 </script>
