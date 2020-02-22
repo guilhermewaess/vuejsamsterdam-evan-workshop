@@ -1,0 +1,92 @@
+<div id="app"></div>
+
+<script>
+  function h(tag, props, children) {
+    return {
+      tag,
+      props,
+      children
+    };
+  }
+
+  function mount(vnode, container) {
+    const el = (vnode.el = document.createElement(vnode.tag));
+
+    //props
+    for (const key in vnode.props) {
+      el.setAttribute(key, vnode.props[key]);
+    }
+
+    //handle children
+    if (typeof vnode.children === 'string') {
+      el.textContent = vnode.children;
+    } else {
+      vnode.children.forEach(child => {
+        mount(child, el);
+      });
+    }
+
+    container.appendChild(el);
+  }
+
+  function patchProps(n1, n2) {
+
+  }
+
+  function patch(n1, n2) {
+    if (n1.tag === n2.tag) {
+      const el = (n2.el = n1.el)
+      patchProps(n1, n2);
+
+      if (typeof n2.children === 'string') {
+        el.textContent = n2.children;
+      } else {
+        if (typeof n1.children === 'string') {
+          // old vnode has string children
+          el.textContent = '';
+          n2.children.forEach(child => mount(child, el));
+        } else {
+          // both have array children
+          const c1 = n1.children;
+          const c2 = n2.children;
+          const commonLength = Math.min(c1.length, c2.length);
+
+          for (let i = 0; i < commonLength; i++) {
+            patch(c1[i], c2[i]);
+          }
+
+          if (c1.length > c2.length) {
+            //old children was longer
+            c1.slice(c2.length).forEach(child => {
+              unmount(child)
+            })
+          }
+          else if (c2.length > c1.length){
+            c2.slice(c1.length).forEach(child => {
+              mount(child)
+            })
+          }
+        }
+      }
+    } else {
+      mount(n2, el.parentNode)
+      unmount(n1)
+    }
+  }
+
+  function unmount(vnode) {
+    vnode.el.parentNode.removeChild(vnode.el)
+  }
+
+  function render(msg) {
+    return h('div', { id: 'app' }, [h('span', null, msg)]);
+  }
+
+  const n1 = render('hello');
+
+  mount(n1, document.getElementById('app'));
+
+  const n2 = render('bye');
+
+  patch(n1, n2);
+</script>

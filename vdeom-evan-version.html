@@ -1,0 +1,99 @@
+<div id="app"></div>
+<script>
+  function h(tag, props, children) {
+    return {
+      tag,
+      props,
+      children
+    };
+  }
+
+  function mount(vnode, container) {
+    // create the element
+    const el = (vnode.el = document.createElement(vnode.tag));
+    // set props
+    for (const key in vnode.props) {
+      el.setAttribute(key, vnode.props[key]);
+    }
+    // handle children
+    if (typeof vnode.children === "string") {
+      el.textContent = vnode.children;
+    } else {
+      vnode.children.forEach(child => {
+        mount(child, el);
+      });
+    }
+    container.appendChild(el);
+  }
+
+  function patch(n1, n2) {
+    const el = (n2.el = n1.el);
+    if (n1.tag === n2.tag) {
+      // if (n2.patchFlag) {
+      //   if (n2.patchFlag & PatchFlags.TEXT) {
+      //     el.textContent
+      //   }
+      //   if (n2.patchFlag & PatchFlags.PROPS) {
+      //     //
+      //   }
+      // }
+      // if (n2.dynamicChildren) {
+
+      // }
+
+      patchProps(n1, n2);
+      if (typeof n2.children === "string") {
+        el.textContent = n2.children;
+      } else {
+        // new vnode has array children
+        if (typeof n1.children === "string") {
+          // old vnode has string children
+          el.textContent = "";
+          n2.children.forEach(child => mount(child, el));
+        } else {
+          // both have array children
+          const c1 = n1.children
+          const c2 = n2.children
+          const commonLength = Math.min(c1.length, c2.length);
+          // patch common length
+          for (let i = 0; i < commonLength; i++) {
+            patch(c1[i], c2[i])
+          }
+          if (c1.length > c2.length) {
+            // old children was longer
+            c1.slice(c2.length).forEach(child => {
+              unmount(child)
+            })
+          } else if (c2.length > c1.length) {
+            // new children is longer
+            c2.slice(c1.length).forEach(child => {
+              mount(child, el)
+            })
+          }
+        }
+      }
+    } else {
+      // replace the node
+      mount(n2, el.parentNode)
+      unmount(n1)
+    }
+  }
+
+  function unmount(vnode) {
+    vnode.el.parentNode.removeChild(vnode.el)
+  }
+
+  function patchProps(n1, n2) {
+    // TODO
+  }
+
+  function render(msg) {
+    return h("div", { class: "app" }, [h("span", null, msg)]);
+  }
+
+  const n1 = render("hello");
+  mount(n1, document.getElementById("app"));
+
+  const n2 = render("bye");
+  patch(n1, n2);
+</script>
